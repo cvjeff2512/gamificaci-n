@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Gamificación en la Educación — UCAT</title>
+<style>
+  /* ===== Fuentes ===== */
+  @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Archivo+Black&display=swap');
+
+  :root{
+    --navy:#052145;
+    --navy-2:#0a3268;
+    --paper:#e9efe4;
+    --paper-card:#ffffff;
+    --gold:#f6c945;
+    --orange:#f3851f;
+    --red:#e8442a;
+    --green:#7fc241;
+    --teal:#2f8fb0;
+    --ink:#0d1b2a;
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0;}
+
+  body{
+    font-family:'Nunito',system-ui,sans-serif;
+    background:
+      radial-gradient(circle at 12% 18%, rgba(5,33,69,.06), transparent 40%),
+      radial-gradient(circle at 88% 82%, rgba(5,33,69,.08), transparent 45%),
+      var(--paper);
+    color:var(--ink);
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:16px;
+    overflow-x:hidden;
+  }
+
+  /* ===== Marco de juego ===== */
+  .game{
+    width:min(960px,100%);
+    background:var(--paper-card);
+    border:6px solid var(--navy);
+    border-radius:24px;
+    box-shadow:0 20px 50px rgba(5,33,69,.35);
+    overflow:hidden;
+    position:relative;
+  }
+
+  /* ===== HUD superior ===== */
+  .hud{
+    background:var(--navy);
+    color:#fff;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    padding:12px 18px;
+    flex-wrap:wrap;
+  }
+  .hud-left{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:.5px;}
+  .pad{
+    width:30px;height:30px;border-radius:50%;
+    background:var(--gold);color:var(--navy);
+    display:grid;place-items:center;font-size:16px;
+    box-shadow:0 0 0 3px rgba(255,255,255,.15);
+  }
+  .lives{display:flex;gap:4px;}
+  .heart{font-size:16px;}
+  .score{
+    font-family:'Archivo Black',sans-serif;
+    font-size:14px;background:rgba(255,255,255,.12);
+    padding:5px 12px;border-radius:999px;
+  }
+
+  /* ===== Barra de niveles (progreso) ===== */
+  .levelbar{
+    display:flex;gap:6px;padding:10px 18px;background:var(--navy-2);
+  }
+  .seg{
+    flex:1;height:10px;border-radius:6px;background:rgba(255,255,255,.18);
+    transition:.3s;
+  }
+  .seg.done{background:var(--gold);}
+  .seg.cur{background:var(--green);box-shadow:0 0 10px var(--green);}
+
+  /* ===== Escenario / slides ===== */
+  .stage{position:relative;min-height:430px;padding:30px 34px 24px;}
+  .slide{display:none;animation:pop .35s ease;}
+  .slide.active{display:block;}
+  @keyframes pop{from{opacity:0;transform:translateY(14px) scale(.98);}to{opacity:1;transform:none;}}
+
+  .tag{
+    display:inline-flex;align-items:center;gap:8px;
+    background:var(--navy);color:#fff;font-weight:800;
+    font-size:12px;letter-spacing:1px;text-transform:uppercase;
+    padding:6px 14px;border-radius:999px;margin-bottom:14px;
+  }
+  .tag .dot{width:8px;height:8px;border-radius:50%;background:var(--gold);}
+
+  h1{
+    font-family:'Archivo Black',sans-serif;
+    color:var(--navy);line-height:.95;text-transform:uppercase;
+    font-size:clamp(34px,7vw,62px);
+  }
+  h2{
+    font-family:'Archivo Black',sans-serif;
+    color:var(--navy);text-transform:uppercase;
+    font-size:clamp(24px,4.5vw,38px);margin-bottom:14px;
+  }
+  .lead{font-size:18px;color:#33414f;margin-top:14px;max-width:60ch;}
+  .lead b{color:var(--navy);}
+
+  /* ===== Tarjetas ===== */
+  .grid{display:grid;gap:16px;}
+  .g2{grid-template-columns:1fr 1fr;}
+  @media(max-width:640px){.g2{grid-template-columns:1fr;}}
+
+  .card{
+    border:3px solid var(--navy);border-radius:16px;padding:18px;
+    background:#fff;box-shadow:4px 4px 0 var(--navy);
+  }
+  .card h3{color:var(--navy);text-transform:uppercase;font-weight:800;font-size:16px;letter-spacing:.5px;margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+  .ico{
+    width:30px;height:30px;border-radius:50%;background:var(--navy);color:var(--gold);
+    display:grid;place-items:center;font-size:15px;flex:none;
+  }
+  .card p, .card li{color:#36434f;font-size:15px;line-height:1.5;}
+  ul{list-style:none;display:grid;gap:8px;}
+  ul li{display:flex;gap:8px;align-items:flex-start;}
+  ul li::before{content:"✓";color:var(--green);font-weight:800;}
+
+  .quote{
+    background:var(--navy);color:#fff;border-radius:16px;padding:20px 22px;
+    font-size:18px;font-weight:700;line-height:1.4;position:relative;margin-top:18px;
+  }
+  .quote::before{content:"“";font-family:'Archivo Black';font-size:54px;color:var(--gold);position:absolute;top:-8px;left:10px;}
+  .quote span{display:block;padding-left:30px;}
+
+  /* ===== Elementos clave (badges juego) ===== */
+  .keys{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:8px;}
+  @media(min-width:640px){.keys{grid-template-columns:repeat(6,1fr);}}
+  .key{text-align:center;}
+  .key .bubble{
+    width:62px;height:62px;border-radius:50%;margin:0 auto 8px;
+    display:grid;place-items:center;font-size:26px;color:#fff;
+    border:3px solid var(--navy);box-shadow:3px 3px 0 var(--navy);
+  }
+  .key small{font-weight:700;color:var(--navy);font-size:12px;}
+
+  /* ===== Pie de fuentes ===== */
+  .sources{font-size:12px;color:#5a6672;line-height:1.5;border-top:2px dashed #c4cdc0;padding-top:12px;margin-top:18px;}
+  .sources b{color:var(--navy);}
+
+  /* ===== Controles ===== */
+  .controls{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+    padding:14px 18px;background:var(--paper);border-top:3px solid var(--navy);
+  }
+  .btn{
+    font-family:'Archivo Black',sans-serif;cursor:pointer;border:none;
+    background:var(--navy);color:#fff;text-transform:uppercase;font-size:13px;
+    padding:12px 18px;border-radius:12px;box-shadow:0 4px 0 #021229;
+    transition:.12s;letter-spacing:.5px;
+  }
+  .btn:hover{transform:translateY(-1px);}
+  .btn:active{transform:translateY(3px);box-shadow:0 1px 0 #021229;}
+  .btn.gold{background:var(--gold);color:var(--navy);box-shadow:0 4px 0 #b98f12;}
+  .btn:disabled{opacity:.35;cursor:not-allowed;transform:none;}
+  .stepinfo{font-weight:800;color:var(--navy);font-size:14px;}
+
+  .center{text-align:center;}
+  .hero-img{width:100%;max-width:300px;border-radius:14px;display:block;margin:14px auto 0;border:3px solid var(--navy);}
+
+  .toast{
+    position:absolute;top:14px;left:50%;transform:translateX(-50%) translateY(-40px);
+    background:var(--green);color:#06310a;font-family:'Archivo Black';font-size:13px;
+    padding:8px 16px;border-radius:999px;opacity:0;transition:.4s;pointer-events:none;z-index:5;
+  }
+  .toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
+  /* ===== Cajas de información portada ===== */
+  .cover-info{
+    display:grid;
+    grid-template-columns:repeat(2, minmax(0,1fr));
+    gap:14px;
+    margin-top:22px;
+    max-width:760px;
+  }
+  @media(max-width:720px){.cover-info{grid-template-columns:1fr;}}
+  .info-box{
+    background:#fff;
+    border:3px solid var(--navy);
+    border-radius:16px;
+    padding:14px 16px;
+    box-shadow:4px 4px 0 var(--gold);
+    display:flex;
+    gap:12px;
+    align-items:flex-start;
+  }
+  .info-box.wide{grid-column:1 / -1;}
+  .info-icon{
+    width:36px;
+    height:36px;
+    border-radius:50%;
+    background:var(--navy);
+    color:var(--gold);
+    display:grid;
+    place-items:center;
+    font-size:18px;
+    flex:none;
+  }
+  .info-box small{
+    display:block;
+    color:var(--navy);
+    font-weight:900;
+    text-transform:uppercase;
+    letter-spacing:.7px;
+    font-size:11px;
+    margin-bottom:3px;
+  }
+  .info-box p{
+    color:#33414f;
+    font-size:15px;
+    line-height:1.35;
+    font-weight:700;
+  }
+</style>
+</head>
+<body>
+<div class="game">
+  <!-- HUD -->
+  <div class="hud">
+    <div class="hud-left"><span class="pad">🎮</span> TEORÍA MODERNA · GAMIFICACIÓN</div>
+    <div class="lives">
+      <span class="heart">❤️</span><span class="heart">❤️</span><span class="heart">❤️</span>
+    </div>
+    <div class="score">★ <span id="score">000</span> PTS</div>
+  </div>
+
+  <!-- Barra de niveles -->
+  <div class="levelbar" id="levelbar"></div>
+
+  <!-- Escenario -->
+  <div class="stage">
+    <div class="toast" id="toast">+50 PTS · ¡NIVEL SUPERADO!</div>
+
+     <!-- NIVEL 1 -->
+    <section class="slide active">
+      <span class="tag"><span class="dot"></span> Nivel 1 · Inicio</span>
+      <h1>Gamificación<br>en la Educación</h1>
+      <p class="lead">Aprender con <b>retos</b>, <b>motivación</b> y <b>propósito</b>. Una estrategia que usa la lógica del juego para hacer el aprendizaje más activo y participativo.</p>
+
+      <div class="cover-info">
+        <div class="info-box wide">
+          <span class="info-icon">🏛️</span>
+          <div>
+            <small>Universidad</small>
+            <p>Universidad Católica de Costa Rica Anselmo Llorente y Lafuente</p>
+          </div>
+        </div>
+
+        <div class="info-box">
+          <span class="info-icon">🎓</span>
+          <div>
+            <small>Programa</small>
+            <p>Doctorado en Ciencias de la Educación</p>
+          </div>
+        </div>
+
+        <div class="info-box">
+          <span class="info-icon">👨‍🏫</span>
+          <div>
+            <small>Docente</small>
+            <p>Dr. Roberto Céspedes Mora</p>
+          </div>
+        </div>
+
+        <div class="info-box wide">
+          <span class="info-icon">👤</span>
+          <div>
+            <small>Doctorando</small>
+            <p>Jeffry Carballo Vargas</p>
+          </div>
+        </div>
+      </div>
+      
+    </section>
+
+    <!-- NIVEL 2 -->
+    <section class="slide">
+      <span class="tag"><span class="dot"></span> Nivel 2 · ¿Qué es?</span>
+      <h2>¿Qué es?</h2>
+      <div class="grid g2">
+        <div class="card">
+          <h3><span class="ico">?</span> Definición</h3>
+          <p>Uso de <b>elementos del juego en contextos educativos</b> no lúdicos (Deterding et al., 2011). Kapp (2012) la entiende como el diseño intencionado de experiencias para motivar y fortalecer el aprendizaje.</p>
+        </div>
+        <div class="card">
+          <h3><span class="ico">⚙</span> Incluye</h3>
+          <ul>
+            <li>Puntos y niveles.</li>
+            <li>Insignias y misiones.</li>
+            <li>Retos y recompensas.</li>
+            <li>Retroalimentación inmediata.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="quote"><span>Gamificar no es solo jugar: es diseñar experiencias para aprender mejor.</span></div>
+    </section>
+
+    <!-- NIVEL 3 -->
+    <section class="slide">
+      <span class="tag"><span class="dot"></span> Nivel 3 · ¿Qué busca?</span>
+      <h2>¿Qué busca?</h2>
+      <p class="lead">Convierte los contenidos en <b>desafíos progresivos</b> donde el estudiante toma un rol activo (Prieto-Andreu, 2022).</p>
+      <div class="grid g2" style="margin-top:16px">
+        <div class="card"><h3><span class="ico">⚡</span> Motivación</h3><p>Despierta interés y ganas de avanzar.</p></div>
+        <div class="card"><h3><span class="ico">🙌</span> Participación</h3><p>Estudiantes activos, no espectadores.</p></div>
+        <div class="card"><h3><span class="ico">🔥</span> Compromiso</h3><p>Mayor implicación con la tarea.</p></div>
+        <div class="card"><h3><span class="ico">📈</span> Progreso</h3><p>Reconocer y seguir el propio avance.</p></div>
+      </div>
+    </section>
+
+    <!-- NIVEL 4 -->
+    <section class="slide">
+      <span class="tag"><span class="dot"></span> Nivel 4 · Inventario</span>
+      <h2>Elementos Clave</h2>
+      <p class="lead">Tu equipo de juego para diseñar experiencias de aprendizaje:</p>
+      <div class="keys">
+        <div class="key"><div class="bubble" style="background:var(--navy)">1</div><small>Puntos</small></div>
+        <div class="key"><div class="bubble" style="background:var(--teal)">📊</div><small>Niveles</small></div>
+        <div class="key"><div class="bubble" style="background:var(--orange)">🏅</div><small>Insignias</small></div>
+        <div class="key"><div class="bubble" style="background:var(--red)">🎯</div><small>Misiones</small></div>
+        <div class="key"><div class="bubble" style="background:var(--gold);color:var(--navy)">🪙</div><small>Recompensas</small></div>
+        <div class="key"><div class="bubble" style="background:var(--green)">💬</div><small>Feedback</small></div>
+      </div>
+    </section>
+
+    <!-- NIVEL 5 -->
+    <section class="slide">
+      <span class="tag"><span class="dot"></span> Nivel 5 · Reglas del juego</span>
+      <h2>Beneficios y Cuidado</h2>
+      <div class="grid g2">
+        <div class="card" style="box-shadow:4px 4px 0 var(--green);border-color:var(--green)">
+          <h3 style="color:#2f7a16"><span class="ico" style="background:var(--green);color:#fff">+</span> Beneficios</h3>
+          <ul>
+            <li>Aprendizaje activo.</li>
+            <li>Colaboración.</li>
+            <li>Autonomía.</li>
+            <li>Mejor seguimiento del progreso.</li>
+          </ul>
+        </div>
+        <div class="card" style="box-shadow:4px 4px 0 var(--red);border-color:var(--red)">
+          <h3 style="color:#b32b15"><span class="ico" style="background:var(--red);color:#fff">!</span> Cuidado</h3>
+          <p><b>No es jugar por jugar.</b> Debe tener intención pedagógica, objetivos claros y equilibrio. Si solo depende de premios o rankings, pierde valor formativo (Ratinho y Martins, 2023).</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- NIVEL FINAL -->
+    <section class="slide">
+      <span class="tag"><span class="dot"></span> Nivel Final · Victoria</span>
+      <div class="center">
+        <h1 style="font-size:clamp(28px,6vw,50px)">¡Nivel<br>Completado!</h1>
+        <p class="lead" style="margin:16px auto;">El juego <b>acompaña</b> el aprendizaje, lo organiza y lo hace más atractivo, <b>pero no sustituye</b> la profundidad académica (Castro Vargas et al., 2025).</p>
+      </div>
+      <div class="sources">
+        <b>Fuentes:</b> Deterding et al. (2011); Kapp (2012); Prieto-Andreu (2022); Ratinho y Martins (2023); Castro Vargas et al. (2025).
+      </div>
+    </section>
+  </div>
+
+  <!-- Controles -->
+  <div class="controls">
+    <button class="btn" id="prev">◄ Atrás</button>
+    <span class="stepinfo"><span id="cur">1</span> / <span id="total">6</span></span>
+    <button class="btn gold" id="next">Siguiente ►</button>
+  </div>
+</div>
+
+<script>
+  const slides=[...document.querySelectorAll('.slide')];
+  const total=slides.length;
+  let i=0, score=0;
+  const reached=new Set([0]);
+
+  const bar=document.getElementById('levelbar');
+  slides.forEach(()=>{const s=document.createElement('div');s.className='seg';bar.appendChild(s);});
+  const segs=[...bar.children];
+
+  document.getElementById('total').textContent=total;
+
+  const scoreEl=document.getElementById('score');
+  const toast=document.getElementById('toast');
+
+  function render(){
+    slides.forEach((s,n)=>s.classList.toggle('active',n===i));
+    segs.forEach((s,n)=>{
+      s.className='seg'+(n<i?' done':n===i?' cur':'');
+    });
+    document.getElementById('cur').textContent=i+1;
+    document.getElementById('prev').disabled=i===0;
+    document.getElementById('next').textContent=i===total-1?'Reiniciar ↺':'Siguiente ►';
+  }
+
+  function award(){
+    if(!reached.has(i)){
+      reached.add(i);
+      score+=50;
+      scoreEl.textContent=String(score).padStart(3,'0');
+      toast.classList.add('show');
+      setTimeout(()=>toast.classList.remove('show'),1100);
+    }
+  }
+
+  document.getElementById('next').addEventListener('click',()=>{
+    if(i===total-1){i=0;render();return;}
+    i++;award();render();
+  });
+  document.getElementById('prev').addEventListener('click',()=>{if(i>0){i--;render();}});
+  document.addEventListener('keydown',e=>{
+    if(e.key==='ArrowRight'){document.getElementById('next').click();}
+    if(e.key==='ArrowLeft'){document.getElementById('prev').click();}
+  });
+
+  render();
+</script>
+</body>
+</html>
